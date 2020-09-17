@@ -66,7 +66,7 @@ services:
            - traefik.http.routers.portainer.tls.certresolver=le
 
 networks:
-    web:
+    ubuntu_scalr_web:
         #external: true
     network_traefik_web:
         # Use bridge driver
