@@ -14,7 +14,7 @@ services:
             - "--certificatesResolvers.le.acme.storage=acme.json"
             - "--certificatesResolvers.le.acme.tlsChallenge=true"
             - "--certificatesResolvers.le.acme.httpChallenge=true"
-            - "--certificatesResolvers.le.acme.httpChallenge.entryPoint=ubuntu-scalr_web"
+            - "--certificatesResolvers.le.acme.httpChallenge.entryPoint=web"
         restart: always
         ports:
             - "80:80"
@@ -29,7 +29,7 @@ services:
 
             # Redirect all HTTP to HTTPS permanently
             - traefik.http.routers.http_catchall.rule=HostRegexp(`{any:.+}`)
-            - traefik.http.routers.http_catchall.entrypoints=ubuntu-scalr_web
+            - traefik.http.routers.http_catchall.entrypoints=web
             - traefik.http.routers.http_catchall.middlewares=https_redirect
             - traefik.http.middlewares.https_redirect.redirectscheme.scheme=https
             - traefik.http.middlewares.https_redirect.redirectscheme.permanent=true
