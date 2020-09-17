@@ -21,7 +21,7 @@ services:
             - "443:443"
             - "8080:8080"
         networks:
-            - web
+            - ubuntu-scalr_web
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
             - ./acme.json:/acme.json
