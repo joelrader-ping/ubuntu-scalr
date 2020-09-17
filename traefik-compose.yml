@@ -14,7 +14,7 @@ services:
             - "--certificatesResolvers.le.acme.storage=acme.json"
             - "--certificatesResolvers.le.acme.tlsChallenge=true"
             - "--certificatesResolvers.le.acme.httpChallenge=true"
-            - "--certificatesResolvers.le.acme.httpChallenge.entryPoint=web"
+            - "--certificatesResolvers.le.acme.httpChallenge.entryPoint=ubuntu-scalr_web"
         restart: always
         ports:
             - "80:80"
@@ -40,7 +40,7 @@ services:
         container_name: "traefik_whoami"
         restart: always
         networks:
-            - web
+            - ubuntu-scalr_web
         labels:
           - traefik.http.routers.whoami.rule=Host(`${HOSTNAME}`) && (PathPrefix(`/whoami`))
           - traefik.http.routers.whoami.tls=true
@@ -51,7 +51,7 @@ services:
         container_name: "traefik_portainer"
         restart: always
         networks:
-          - web
+          - ubuntu-scalr_web
         command:
         # Add an extra $ in front of each $ to escape it. Then admin password will work
           --admin-password '$$2y$$05$$phwSg3ykaHLBDYEEpUHfFeePAlN52B5jX.EOS4GsVPtr9wd008iSO' -H unix:///var/run/docker.sock
@@ -66,7 +66,7 @@ services:
            - traefik.http.routers.portainer.tls.certresolver=le
 
 networks:
-    ubuntu_scalr_web:
+    ubuntu-scalr_web:
         #external: true
     network_traefik_web:
         # Use bridge driver
