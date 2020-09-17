@@ -67,7 +67,7 @@ services:
 
 networks:
     web:
-        external: true
+        #external: true
     network_traefik_web:
         # Use bridge driver
         driver: bridge
