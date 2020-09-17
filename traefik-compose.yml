@@ -1,0 +1,76 @@
+version: '2'
+
+services:
+
+    traefik:
+        container_name: "traefik"
+        image: traefik:v2.0.0
+        command:
+            - "--api.insecure=true"
+            - "--providers.docker=true"
+            - "--entryPoints.web.address=:80"
+            - "--entryPoints.websecure.address=:443"
+            - "--certificatesResolvers.le.acme.email=${EMAIL_ADDRESS}"
+            - "--certificatesResolvers.le.acme.storage=acme.json"
+            - "--certificatesResolvers.le.acme.tlsChallenge=true"
+            - "--certificatesResolvers.le.acme.httpChallenge=true"
+            - "--certificatesResolvers.le.acme.httpChallenge.entryPoint=web"
+        restart: always
+        ports:
+            - "80:80"
+            - "443:443"
+            - "8080:8080"
+        networks:
+            - web
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - ./acme.json:/acme.json
+        labels:
+
+            # Redirect all HTTP to HTTPS permanently
+            - traefik.http.routers.http_catchall.rule=HostRegexp(`{any:.+}`)
+            - traefik.http.routers.http_catchall.entrypoints=web
+            - traefik.http.routers.http_catchall.middlewares=https_redirect
+            - traefik.http.middlewares.https_redirect.redirectscheme.scheme=https
+            - traefik.http.middlewares.https_redirect.redirectscheme.permanent=true
+
+# Hosts simple info at joel.channel.ping-eng.com/whoami
+    whoami:
+        image: "containous/whoami"
+        container_name: "traefik_whoami"
+        restart: always
+        networks:
+            - web
+        labels:
+          - traefik.http.routers.whoami.rule=Host(`${HOSTNAME}`) && (PathPrefix(`/whoami`))
+          - traefik.http.routers.whoami.tls=true
+          - traefik.http.routers.whoami.tls.certresolver=le
+          
+    portainer:
+        image: "portainer/portainer"
+        container_name: "traefik_portainer"
+        restart: always
+        networks:
+          - web
+        command:
+        # Add an extra $ in front of each $ to escape it. Then admin password will work
+          --admin-password '$$2y$$05$$phwSg3ykaHLBDYEEpUHfFeePAlN52B5jX.EOS4GsVPtr9wd008iSO' -H unix:///var/run/docker.sock
+          --templates https://raw.githubusercontent.com/joelrader-ping/portainer-templates/master/templates-ping.json
+          --logo https://raw.githubusercontent.com/joelrader-ping/portainer-templates/master/ping-logo.svg
+        volumes:
+           - "/var/run/docker.sock:/var/run/docker.sock:ro"
+           - ./traefik_portainer_data/:/data
+        labels:
+           - traefik.http.routers.portainer.rule=Host(`${HOSTNAME}`)
+           - traefik.http.routers.portainer.tls=true
+           - traefik.http.routers.portainer.tls.certresolver=le
+
+networks:
+    web:
+        external: true
+    network_traefik_web:
+        # Use bridge driver
+        driver: bridge
+        driver_opts:
+          com.docker.network.enable_ipv6: "true"
+
