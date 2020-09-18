@@ -24,7 +24,7 @@ services:
             - traefik_web
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
-            - ./acme.json:/acme.json    # Create this file externally and "chmod 400"
+            - ./acme.json:/acme.json    # Create this file externally and "chmod 600"
         labels:
 
             # Redirect all HTTP to HTTPS permanently
