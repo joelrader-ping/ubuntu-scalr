@@ -1,0 +1,75 @@
+# Do these steps first, only need to be done once per host
+# sudo apt-get update
+
+# Installer for:software-properties-common
+REQUIRED_PKG="software-properties-common"
+PKG_OK=$(dpkg-query -W --showformat='${Status}\n' $REQUIRED_PKG|grep "install ok installed")
+echo PACKAGE CHECK: $REQUIRED_PKG: $PKG_OK
+if [ "" = "$PKG_OK" ]; then
+  echo "No $REQUIRED_PKG. Setting up $REQUIRED_PKG."
+  sudo apt-get --yes install $REQUIRED_PKG 
+fi
+
+#sudo add-apt-repository universe
+#sudo add-apt-repository ppa:certbot/certbot
+#sudo apt-get update
+#
+
+# Install certbot if it's not already installed
+REQUIRED_PKG="certbot"
+PKG_OK=$(dpkg-query -W --showformat='${Status}\n' $REQUIRED_PKG|grep "install ok installed")
+echo PACKAGE CHECK: $REQUIRED_PKG: $PKG_OK
+if [ "" = "$PKG_OK" ]; then
+  echo "No $REQUIRED_PKG. Setting up $REQUIRED_PKG."
+  sudo apt-get --yes install $REQUIRED_PKG 
+fi
+
+# Get user input
+read -p 'Enter your full hostname: ' HOSTNAME
+read -p 'Enter a password to protect your .p12: ' PASSWORD
+
+# Certbot
+sudo certbot certonly --standalone --cert-name $HOSTNAME
+# Should only run command below if certbot completed successfully
+mkdir -p local-certs
+sudo cp /etc/letsencrypt/live/$HOSTNAME/fullchain.pem ./local-certs
+sudo cp /etc/letsencrypt/live/$HOSTNAME/privkey.pem ./local-certs
+sudo openssl pkcs12 -export -inkey /etc/letsencrypt/live/$HOSTNAME/privkey.pem -in /etc/letsencrypt/live/$HOSTNAME/fullchain.pem -out $HOSTNAME.p12 -password pass:$PASSWORD
+
+# Certs are owned by root and can't be moved?
+sudo chown $USER:$USER $HOSTNAME.p12
+
+
+#!/bin/bash
+#
+# This script deploys an instance of Portainer that has
+# SSL certificates configured for the admin console at
+# https://<hostname>
+#
+# You'll need to supply the certs in yourself by doing:
+# 1) mkdir local-certs
+# 2) cp <sourcefile.crt> ./local-certs/portainer.crt
+# 3) cp <sourcefile.key> ./local-certs/portainer.key
+# 4) Run this script
+#
+# Don't have certs? Run this command first:
+# create_ssl_cert.sh --hostname.domain.com
+  
+docker run -d \
+  -p 443:9000 \
+  -p 8001:8000 \
+  --name portainer_ssl \
+  --restart always \
+  -v "$(pwd)"/local-certs:/certs \
+  -v portainer_ssl_data:/data \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  portainer/portainer \
+  --ssl \
+  --sslcert /certs/fullchain.pem \
+  --sslkey /certs/privkey.pem
+  --templates "https://raw.githubusercontent.com/joelrader-ping/portainer-templates/master/templates-ping.json" \
+  --logo "https://raw.githubusercontent.com/joelrader-ping/portainer-templates/master/ping-logo.svg" \
+  --admin-password='$2y$05$phwSg3ykaHLBDYEEpUHfFeePAlN52B5jX.EOS4GsVPtr9wd008iSO'
+
+# Note: `-v` flag is used so that the bind-mount volume
+#       will be created relative to the current directory
